@@ -1,0 +1,3 @@
+[xilinx-container-runtime]
+debug = "/var/log/xilinx-container-runtime.log"
+#debug = "./xilinx-container-runtime.log"
