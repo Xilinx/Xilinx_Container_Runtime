@@ -32,3 +32,7 @@ Xilinx Container Runtime Architecture
 .. toctree::
    :caption: Quick Start
    :maxdepth: 1
+
+   Prerequisites.rst
+   Build.rst
+   rel.rst
