@@ -20,4 +20,4 @@ Xilinx container runtime has been tested on the following OS distributions:
 3.
 
 To deploy xilinx container runtime, simply install the proper RPM or DEB package obtained from Xilinx.
-To build a develop version of xilinx container runtime, please follow the instruction in ``docs/Build.rst``.
+To build a develop version of xilinx container runtime, please follow the instruction in ``docs/Install.rst``.

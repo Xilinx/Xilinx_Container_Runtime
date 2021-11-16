@@ -34,5 +34,14 @@ Xilinx Container Runtime Architecture
    :maxdepth: 1
 
    Prerequisites.rst
-   Build.rst
+   Install.rst
    rel.rst
+
+.. toctree::
+   :caption: User Guide
+   :maxdepth: 1
+
+   cli.rst
+   docker.rst
+   podman.rst
+   singularity.rst
