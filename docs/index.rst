@@ -37,11 +37,20 @@ Xilinx Container Runtime Architecture
    Install.rst
    rel.rst
 
+
 .. toctree::
    :caption: User Guide
    :maxdepth: 1
+
 
    cli.rst
    docker.rst
    podman.rst
    singularity.rst
+
+
+.. toctree::
+   :caption: Notice
+   :maxdepth: 1
+
+   notice.rst
