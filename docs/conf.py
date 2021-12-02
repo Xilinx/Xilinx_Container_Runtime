@@ -46,9 +46,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'Xilinx_Container_Runtime'
-copyright = '2021, Yahui Lu'
-author = 'Yahui Lu'
+project = 'Xilinx Container Runtime'
+copyright = 'Copyright (C) 2019-2021, Xilinx Inc - All rights reserved'
+author = 'Xilinx'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -83,7 +83,8 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'xilinx'
+html_theme_path = ["../../sphinx_xilinx_theme/_themes"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

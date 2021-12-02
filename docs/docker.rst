@@ -19,6 +19,20 @@ Docker is allowed to be configured by /etc/docker/daemon.json, the following cod
         }
     }
 
+Optionally, you can set xilinx as the default container runtime for docker.
+
+.. code-block:: json
+
+    {
+        "default-runtime": "xilinx",
+        "runtimes": {
+            "xilinx": {
+                "path": "/usr/bin/xilinx-container-runtime",
+                "runtimeArgs": []
+            }
+        }
+    }
+
 Restart Docker Service
 ......................
 
@@ -34,7 +48,7 @@ Start a Container
 
 Xilinx container runtime can be specified using --runtime flag.
 
-Notice: Default runtime can be set in /etc/docker/daemon.json, so that --runtime flag can be omitted.
+Notice: If the default runtime was set in /etc/docker/daemon.json, --runtime flag can be omitted.
 
 .. code-block:: bash
 

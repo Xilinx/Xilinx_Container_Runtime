@@ -42,7 +42,10 @@ Build and install xilinx container runtime requires golang 17.1+.
 
 
 Test
+....
+
+After successful installation, simply run xiliinx-container-runtime to get some usage information.
 
 ::
 
-    xilinx-container-runtime lscard
+    xilinx-container-runtime
