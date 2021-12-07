@@ -47,7 +47,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Xilinx Container Runtime'
-copyright = 'Copyright (C) 2019-2021, Xilinx Inc - All rights reserved'
+copyright = 'Copyright (C) 2021, Xilinx Inc - All rights reserved'
 author = 'Xilinx'
 
 # The version info for the project you're documenting, acts as replacement for
