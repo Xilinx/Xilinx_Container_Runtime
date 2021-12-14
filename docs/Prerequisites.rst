@@ -11,7 +11,7 @@ Current supported host platform is x86_64.
 OS Distributions
 ~~~~~~~~~~~~~~~~
 
-Xilinx container runtime requires Linux kernel 3.10+ with runc installed.
+Xilinx container runtime requires runc installed.
 
 Xilinx container runtime has been tested on the following OS distributions:
 
