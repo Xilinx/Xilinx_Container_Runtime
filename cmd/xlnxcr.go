@@ -80,6 +80,29 @@ func (r xilinxContainerRuntime) modificationRequired(args []string) bool {
 	return false
 }
 
+func (r xilinxContainerRuntime) deleteDeviceExlusionsRequired(args []string) bool {
+	var previousWasBundle bool
+	for _, a := range args {
+		// We check for '--bundle|-b delete' explicitly to ensure
+		// that we don't inadvertently trigger a modification if the bundle
+		// directory is specified as 'delete'
+		if !previousWasBundle && isBundleFlag(a) {
+			previousWasBundle = true
+			continue
+		}
+
+		if !previousWasBundle && (a == "delete") {
+			r.logger.Infof("'delete' command detected, device status update required")
+			return true
+		}
+
+		previousWasBundle = false
+	}
+
+	r.logger.Infof("No device status update required")
+	return false
+}
+
 func (r xilinxContainerRuntime) forwardingRequired(args []string) bool {
 	var previousWasBundle bool
 	for _, a := range args {
@@ -101,6 +124,59 @@ func (r xilinxContainerRuntime) forwardingRequired(args []string) bool {
 	return true
 }
 
+func (r xilinxContainerRuntime) getVisibleDevices(spec *specs.Spec) ([]xilinxDevice, error) {
+	visibleDevicesEnv := ""
+	visibleCardsEnv := ""
+	var visibleXilinxDevices []xilinxDevice
+
+	if spec.Process != nil && spec.Process.Env != nil {
+		// Check environment variable from OCI Spec file
+		for _, str := range spec.Process.Env {
+			parts := strings.SplitN(str, "=", 2)
+
+			if len(parts) != 2 {
+				continue
+			}
+
+			if parts[0] == envXLNXVisibleDevices {
+				visibleDevicesEnv = parts[1]
+			} else if parts[0] == envXLNXVisibleCards {
+				visibleCardsEnv = parts[1]
+			}
+		}
+	}
+
+	// Check OS environment variables
+	if visibleDevicesEnv == "" {
+		visibleDevicesEnv = os.Getenv(envXLNXVisibleDevices)
+	}
+	if visibleCardsEnv == "" {
+		visibleCardsEnv = os.Getenv(envXLNXVisibleCards)
+	}
+
+	if visibleDevicesEnv == "" && visibleCardsEnv == "" {
+		// Do nothing since no envs specified
+		logger.Infof("Environment variable %s and %s is not specified", envXLNXVisibleDevices, envXLNXVisibleCards)
+		return nil, nil
+	}
+
+	if visibleDevicesEnv != "" {
+		devices, err := getXilinxDevicesByDeviceEnv(visibleDevicesEnv)
+		if err != nil {
+			return nil, fmt.Errorf("error getting xilinx devices: %v", err)
+		}
+		visibleXilinxDevices = append(visibleXilinxDevices, devices...)
+	} else {
+		devices, err := getXilinxDevicesByCardEnv(visibleCardsEnv)
+		if err != nil {
+			return nil, fmt.Errorf("error getting xilinx devices: %v", err)
+		}
+		visibleXilinxDevices = append(visibleXilinxDevices, devices...)
+	}
+
+	return visibleXilinxDevices, nil
+}
+
 func (r xilinxContainerRuntime) deviceExlusionEnabled(spec *specs.Spec) bool {
 	deviceExclusiveEnv := ""
 	if spec.Process != nil && spec.Process.Env != nil {
@@ -118,9 +194,8 @@ func (r xilinxContainerRuntime) deviceExlusionEnabled(spec *specs.Spec) bool {
 		}
 	}
 
-	r.logger.Printf("Environment Variable %s=%s", envXLNXDeviceExlusive, deviceExclusiveEnv)
 	if deviceExclusiveEnv != "" {
-		exlusive, err := strconv.ParseBool(deviceExclusiveEnv)
+		exlusive, err := strconv.ParseBool(strings.ToLower(deviceExclusiveEnv))
 		if err == nil {
 			return exlusive
 		} else {
@@ -188,78 +263,72 @@ func (r xilinxContainerRuntime) modifyOCISpec() error {
 	return nil
 }
 
-func (r xilinxContainerRuntime) addXilinxDevices(spec *specs.Spec) error {
-	visibleDevicesEnv := ""
-	visibleCardsEnv := ""
-	var visibleXilinxDevices []xilinxDevice
+func (r xilinxContainerRuntime) deleteDeviceExclusions(spec *specs.Spec) error {
 
-	if spec.Process != nil && spec.Process.Env != nil {
-		// Check environment variable from OCI Spec file
-		for _, str := range spec.Process.Env {
-			parts := strings.SplitN(str, "=", 2)
-
-			if len(parts) != 2 {
-				continue
-			}
-
-			if parts[0] == envXLNXVisibleDevices {
-				visibleDevicesEnv = parts[1]
-			} else if parts[0] == envXLNXVisibleCards {
-				visibleCardsEnv = parts[1]
-			}
-		}
-	}
-
-	// Check OS environment variables
-	if visibleDevicesEnv == "" {
-		visibleDevicesEnv = os.Getenv(envXLNXVisibleDevices)
-	}
-	if visibleCardsEnv == "" {
-		visibleCardsEnv = os.Getenv(envXLNXVisibleCards)
-	}
-
-	if visibleDevicesEnv == "" && visibleCardsEnv == "" {
-		// Do nothing since no envs specified
-		logger.Infof("Environment variable %s and %s is not specified", envXLNXVisibleDevices, envXLNXVisibleCards)
+	if !r.deviceExlusionEnabled(spec) {
+		r.logger.Infof("Deivce exclusive is not enabled for this container")
 		return nil
 	}
 
-	if visibleDevicesEnv != "" {
-		devices, err := getXilinxDevicesByDeviceEnv(visibleDevicesEnv)
-		if err != nil {
-			return fmt.Errorf("error getting xilinx devices: %v", err)
-		}
-		visibleXilinxDevices = append(visibleXilinxDevices, devices...)
+	visibleXilinxDevices, err := r.getVisibleDevices(spec)
+	if err != nil {
+		return err
+	} else if visibleXilinxDevices == nil || len(visibleXilinxDevices) == 0 {
+		r.logger.Infof("There is no device used in this container")
+		return nil
 	} else {
-		devices, err := getXilinxDevicesByCardEnv(visibleCardsEnv)
-		if err != nil {
-			return fmt.Errorf("error getting xilinx devices: %v", err)
-		}
-		visibleXilinxDevices = append(visibleXilinxDevices, devices...)
+		r.logger.Infof("There is %d device(s) used in this container", len(visibleXilinxDevices))
 	}
 
-	r.logger.Printf("There is %d device(s) to be mounted", len(visibleXilinxDevices))
+	// get current device exclusion status from file
+	deviceExlusions, err := r.getDeviceExlusions()
+	if err != nil {
+		return err
+	}
+
+	for _, device := range visibleXilinxDevices {
+		deviceExlusions[device.DBDF] = false
+	}
+
+	// flush the device exclusion status into file
+	err = r.setDeviceExlusions(deviceExlusions)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r xilinxContainerRuntime) addXilinxDevices(spec *specs.Spec) error {
+	visibleXilinxDevices, err := r.getVisibleDevices(spec)
+	if err != nil {
+		return err
+	} else if visibleXilinxDevices == nil || len(visibleXilinxDevices) == 0 {
+		r.logger.Infof("There is no device to be mounted")
+		return nil
+	} else {
+		r.logger.Infof("There is %d device(s) to be mounted", len(visibleXilinxDevices))
+	}
+
+	// get current device exclusion status from file
+	deviceExlusions, err := r.getDeviceExlusions()
+	if err != nil {
+		return err
+	}
+
+	// check whether requested device(s) are excluded by another container
+	for _, device := range visibleXilinxDevices {
+		if deviceExlusions[device.DBDF] {
+			r.logger.Printf("Device %s is being used exlusively by another container", device.DBDF)
+			return fmt.Errorf("Device %s is being used exlusively by another container", device.DBDF)
+		}
+	}
 
 	// check whether it is in device exclusive mode
 	if r.deviceExlusionEnabled(spec) {
-		// get current device exclusion status from file
-		deviceExlusions, err := r.getDeviceExlusions()
-		if err != nil {
-			return err
-		}
-
-		// check whether requested device(s) are excluded by another container
-		// set requested device(s) as excluded
 		for _, device := range visibleXilinxDevices {
-			if deviceExlusions[device.DBDF] {
-				r.logger.Printf("Device %s is being used exlusively by another container", device.DBDF)
-				return fmt.Errorf("Device %s is being used exlusively by another container", device.DBDF)
-			} else {
-				r.logger.Printf("Device %s will be used exlusively to this container", device.DBDF)
-				deviceExlusions[device.DBDF] = true
-			}
+			r.logger.Printf("Device %s will be used exlusively by this container", device.DBDF)
+			deviceExlusions[device.DBDF] = true
 		}
-
 		// flush the device exclusion status into file
 		err = r.setDeviceExlusions(deviceExlusions)
 		if err != nil {
@@ -341,6 +410,17 @@ func (r xilinxContainerRuntime) Exec(args []string) error {
 		err := r.modifyOCISpec()
 		if err != nil {
 			return fmt.Errorf("Fail to modify OCI spec: %v", err)
+		}
+	}
+
+	if r.deleteDeviceExlusionsRequired(args) {
+		err := r.ocispec.Load()
+		if err != nil {
+			return fmt.Errorf("error loading OCI specification for modification: %v", err)
+		}
+		err = r.ocispec.Modify(r.deleteDeviceExclusions)
+		if err != nil {
+			return fmt.Errorf("Fail to delete device exlusion status: %v", err)
 		}
 	}
 
