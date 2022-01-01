@@ -18,8 +18,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/Xilinx/xilinx-container-runtime/pkg/oci"
@@ -30,11 +32,13 @@ import (
 const (
 	envXLNXVisibleDevices = "XILINX_VISIBLE_DEVICES"
 	envXLNXVisibleCards   = "XILINX_VISIBLE_CARDS"
+	envXLNXDeviceExlusive = "XILINX_DEVICE_EXLUSIVE"
 )
 
 // xilinxContainerRuntime wraps specified runtime, conditionally modifying OCI spec before invoking the spcified runtime
 type xilinxContainerRuntime struct {
 	logger  *log.Logger
+	cfg     *config
 	runtime oci.Runtime
 	ocispec oci.Spec
 }
@@ -42,9 +46,10 @@ type xilinxContainerRuntime struct {
 var _ oci.Runtime = (*xilinxContainerRuntime)(nil)
 
 // Constructor for xilinx container runtime
-func newXilinxContainerRuntimeWithLogger(logger *log.Logger, runtime oci.Runtime, ociSpec oci.Spec) (oci.Runtime, error) {
+func newXilinxContainerRuntimeWithLogger(logger *log.Logger, cfg *config, runtime oci.Runtime, ociSpec oci.Spec) (oci.Runtime, error) {
 	r := xilinxContainerRuntime{
 		logger:  logger,
+		cfg:     cfg,
 		runtime: runtime,
 		ocispec: ociSpec,
 	}
@@ -94,6 +99,74 @@ func (r xilinxContainerRuntime) forwardingRequired(args []string) bool {
 		previousWasBundle = false
 	}
 	return true
+}
+
+func (r xilinxContainerRuntime) deviceExlusionEnabled(spec *specs.Spec) bool {
+	deviceExclusiveEnv := ""
+	if spec.Process != nil && spec.Process.Env != nil {
+		// Check environment variable from OCI Spec file
+		for _, str := range spec.Process.Env {
+			parts := strings.SplitN(str, "=", 2)
+
+			if len(parts) != 2 {
+				continue
+			}
+
+			if parts[0] == envXLNXDeviceExlusive {
+				deviceExclusiveEnv = parts[1]
+			}
+		}
+	}
+
+	r.logger.Printf("Environment Variable %s=%s", envXLNXDeviceExlusive, deviceExclusiveEnv)
+	if deviceExclusiveEnv != "" {
+		exlusive, err := strconv.ParseBool(deviceExclusiveEnv)
+		if err == nil {
+			return exlusive
+		} else {
+			r.logger.Printf("error getting device exclusive enable status %v", err)
+			return r.cfg.exclusive
+		}
+	}
+
+	return r.cfg.exclusive
+}
+
+func (r xilinxContainerRuntime) getDeviceExlusions() (map[string]bool, error) {
+	file, err := os.Open(r.cfg.exclusionFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("error opening device exlusion file: %v", err)
+	}
+
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+
+	var exclusions map[string]bool
+	err = decoder.Decode(&exclusions)
+	if err != nil {
+		return nil, fmt.Errorf("error reading device exlusions from file: %v", err)
+	}
+
+	return exclusions, nil
+}
+
+func (r xilinxContainerRuntime) setDeviceExlusions(exclusions map[string]bool) error {
+	file, err := os.Create(r.cfg.exclusionFilePath)
+	if err != nil {
+		return fmt.Errorf("error opening device exlusion file: %v", err)
+	}
+
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+
+	err = encoder.Encode(exclusions)
+	if err != nil {
+		return fmt.Errorf("error writing device exlusions to file: %v", err)
+	}
+	return nil
 }
 
 func (r xilinxContainerRuntime) modifyOCISpec() error {
@@ -166,6 +239,35 @@ func (r xilinxContainerRuntime) addXilinxDevices(spec *specs.Spec) error {
 	}
 
 	r.logger.Printf("There is %d device(s) to be mounted", len(visibleXilinxDevices))
+
+	// check whether it is in device exclusive mode
+	if r.deviceExlusionEnabled(spec) {
+		// get current device exclusion status from file
+		deviceExlusions, err := r.getDeviceExlusions()
+		if err != nil {
+			return err
+		}
+
+		// check whether requested device(s) are excluded by another container
+		// set requested device(s) as excluded
+		for _, device := range visibleXilinxDevices {
+			if deviceExlusions[device.DBDF] {
+				r.logger.Printf("Device %s is being used exlusively by another container", device.DBDF)
+				return fmt.Errorf("Device %s is being used exlusively by another container", device.DBDF)
+			} else {
+				r.logger.Printf("Device %s will be used exlusively to this container", device.DBDF)
+				deviceExlusions[device.DBDF] = true
+			}
+		}
+
+		// flush the device exclusion status into file
+		err = r.setDeviceExlusions(deviceExlusions)
+		if err != nil {
+			return err
+		}
+
+	}
+
 	for _, device := range visibleXilinxDevices {
 		// Check whether the device is in the mount config already
 		userMounted, mgmtMounted := false, false

@@ -30,7 +30,7 @@ const (
 	ociSpecFileName = "config.json"
 )
 
-func newRuntime(argv []string) (oci.Runtime, error) {
+func newRuntime(argv []string, cfg *config) (oci.Runtime, error) {
 	ociSpec, err := newOCISpec(argv)
 	if err != nil {
 		return nil, fmt.Errorf("error constructing OCI specification: %v", err)
@@ -41,7 +41,7 @@ func newRuntime(argv []string) (oci.Runtime, error) {
 		return nil, fmt.Errorf("error constructing runc runtime: %v", err)
 	}
 
-	xlnxcr, err := newXilinxContainerRuntimeWithLogger(logger.Logger, runc, ociSpec)
+	xlnxcr, err := newXilinxContainerRuntimeWithLogger(logger.Logger, cfg, runc, ociSpec)
 	if err != nil {
 		return nil, fmt.Errorf("error constructing Xilinx Container Runtime: %v", err)
 	}

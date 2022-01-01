@@ -59,7 +59,7 @@ type pairs struct {
 }
 
 type xilinxDevice struct {
-	index     string
+	index     string // integer numbered
 	shellVer  string
 	timestamp string
 	DBDF      string // this is for user pf

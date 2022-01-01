@@ -28,7 +28,9 @@ import (
 )
 
 type config struct {
-	debugFilePath string
+	debugFilePath     string
+	exclusive         bool
+	exclusionFilePath string
 }
 
 const (
@@ -125,9 +127,9 @@ func printCards() {
 	}
 }
 
-func run(argv []string) (err error) {
+func run(argv []string, cfg *config) (err error) {
 
-	r, err := newRuntime(argv)
+	r, err := newRuntime(argv, cfg)
 	if err != nil {
 		return fmt.Errorf("error creating runtime: %v", err)
 	}
@@ -156,6 +158,9 @@ func getConfig() (*config, error) {
 	}
 
 	cfg.debugFilePath = toml.GetDefault("xilinx-container-runtime.debug", "/dev/null").(string)
+	cfg.exclusive = toml.GetDefault("device-exclusion.enabled", false).(bool)
+	cfg.exclusionFilePath = toml.GetDefault("device-exclusion.exclusionFilePath", "/etc/xilinx-container-runtime/device-exclusion.json").(string)
+
 	return cfg, nil
 }
 
@@ -190,16 +195,18 @@ func main() {
 		} else if args[0] == "lscard" {
 			printCards()
 		} else {
-			err := run(os.Args)
+			err := run(os.Args, cfg)
 			if err != nil {
 				logger.Errorf("Error running %v: %v", os.Args, err)
+				fmt.Fprintf(os.Stderr, "Error running %v: %v\n", os.Args, err)
 				os.Exit(1)
 			}
 		}
 	} else {
-		err := run(os.Args)
+		err := run(os.Args, cfg)
 		if err != nil {
 			logger.Errorf("Error running %v: %v", os.Args, err)
+			fmt.Fprintf(os.Stderr, "Error running %v: %v\n", os.Args, err)
 			os.Exit(1)
 		}
 	}

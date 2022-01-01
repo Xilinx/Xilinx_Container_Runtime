@@ -26,7 +26,7 @@ import (
 )
 
 func TestConstructor(t *testing.T) {
-	shim, err := newRuntime([]string{})
+	shim, err := newRuntime([]string{}, nil)
 	require.NoError(t, err)
 	require.NotNil(t, shim)
 }
