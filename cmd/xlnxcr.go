@@ -23,6 +23,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/Xilinx/xilinx-container-runtime/pkg/oci"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -41,6 +42,7 @@ type xilinxContainerRuntime struct {
 	cfg     *config
 	runtime oci.Runtime
 	ocispec oci.Spec
+	mutex   *sync.Mutex
 }
 
 var _ oci.Runtime = (*xilinxContainerRuntime)(nil)
@@ -52,11 +54,13 @@ func newXilinxContainerRuntimeWithLogger(logger *log.Logger, cfg *config, runtim
 		cfg:     cfg,
 		runtime: runtime,
 		ocispec: ociSpec,
+		mutex:   new(sync.Mutex),
 	}
 
 	return &r, nil
 }
 
+// check if modification is required for current command
 func (r xilinxContainerRuntime) modificationRequired(args []string) bool {
 	var previousWasBundle bool
 	for _, a := range args {
@@ -80,6 +84,7 @@ func (r xilinxContainerRuntime) modificationRequired(args []string) bool {
 	return false
 }
 
+// check if it is 'delete' command
 func (r xilinxContainerRuntime) deleteDeviceExlusionsRequired(args []string) bool {
 	var previousWasBundle bool
 	for _, a := range args {
@@ -103,6 +108,7 @@ func (r xilinxContainerRuntime) deleteDeviceExlusionsRequired(args []string) boo
 	return false
 }
 
+// check if it is required to forward command to inner runtime (runC)
 func (r xilinxContainerRuntime) forwardingRequired(args []string) bool {
 	var previousWasBundle bool
 	for _, a := range args {
@@ -124,6 +130,7 @@ func (r xilinxContainerRuntime) forwardingRequired(args []string) bool {
 	return true
 }
 
+// get visible devices list based on environment variables
 func (r xilinxContainerRuntime) getVisibleDevices(spec *specs.Spec) ([]xilinxDevice, error) {
 	visibleDevicesEnv := ""
 	visibleCardsEnv := ""
@@ -177,6 +184,7 @@ func (r xilinxContainerRuntime) getVisibleDevices(spec *specs.Spec) ([]xilinxDev
 	return visibleXilinxDevices, nil
 }
 
+// check if device exclusion is enabled for this container
 func (r xilinxContainerRuntime) deviceExlusionEnabled(spec *specs.Spec) bool {
 	deviceExclusiveEnv := ""
 	if spec.Process != nil && spec.Process.Env != nil {
@@ -207,8 +215,15 @@ func (r xilinxContainerRuntime) deviceExlusionEnabled(spec *specs.Spec) bool {
 	return r.cfg.exclusive
 }
 
+// get current device exclusion stats from file
 func (r xilinxContainerRuntime) getDeviceExlusions() (map[string]bool, error) {
+	exclusions := make(map[string]bool)
+	if _, err := os.Stat(r.cfg.exclusionFilePath); os.IsNotExist(err) {
+		return exclusions, nil
+	}
+
 	file, err := os.Open(r.cfg.exclusionFilePath)
+
 	if err != nil {
 		return nil, fmt.Errorf("error opening device exlusion file: %v", err)
 	}
@@ -217,7 +232,6 @@ func (r xilinxContainerRuntime) getDeviceExlusions() (map[string]bool, error) {
 
 	decoder := json.NewDecoder(file)
 
-	var exclusions map[string]bool
 	err = decoder.Decode(&exclusions)
 	if err != nil {
 		return nil, fmt.Errorf("error reading device exlusions from file: %v", err)
@@ -226,6 +240,7 @@ func (r xilinxContainerRuntime) getDeviceExlusions() (map[string]bool, error) {
 	return exclusions, nil
 }
 
+// save device exclusion stats into file
 func (r xilinxContainerRuntime) setDeviceExlusions(exclusions map[string]bool) error {
 	file, err := os.Create(r.cfg.exclusionFilePath)
 	if err != nil {
@@ -244,6 +259,7 @@ func (r xilinxContainerRuntime) setDeviceExlusions(exclusions map[string]bool) e
 	return nil
 }
 
+// modify OCI spec to add xilinx devices
 func (r xilinxContainerRuntime) modifyOCISpec() error {
 	err := r.ocispec.Load()
 	if err != nil {
@@ -263,6 +279,7 @@ func (r xilinxContainerRuntime) modifyOCISpec() error {
 	return nil
 }
 
+// delete device exclusions while deleting current container
 func (r xilinxContainerRuntime) deleteDeviceExclusions(spec *specs.Spec) error {
 
 	if !r.deviceExlusionEnabled(spec) {
@@ -298,6 +315,7 @@ func (r xilinxContainerRuntime) deleteDeviceExclusions(spec *specs.Spec) error {
 	return nil
 }
 
+// add xilinx devices in OCI Spec
 func (r xilinxContainerRuntime) addXilinxDevices(spec *specs.Spec) error {
 	visibleXilinxDevices, err := r.getVisibleDevices(spec)
 	if err != nil {
@@ -404,7 +422,10 @@ func (r xilinxContainerRuntime) addXilinxDevices(spec *specs.Spec) error {
 	return nil
 }
 
+// method to be called from main method
 func (r xilinxContainerRuntime) Exec(args []string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	// Check wehther it is rquired to modify the OCI spec
 	if r.modificationRequired(args) {
 		err := r.modifyOCISpec()

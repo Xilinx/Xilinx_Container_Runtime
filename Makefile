@@ -45,8 +45,6 @@ install:
 		mkdir /etc/xilinx-container-runtime; \
     fi
 	cp ./configs/xilinx-container-runtime/config.toml /etc/xilinx-container-runtime/config.toml
-	cp ./configs/xilinx-container-runtime/device-exclusion.json /etc/xilinx-container-runtime/device-exclusion.json
-	# cp ./configs/docker/daemon.json /etc/docker/daemon.json
 
 clean:
 	rm ./xilinx-container-runtime
