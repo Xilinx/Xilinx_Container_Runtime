@@ -84,6 +84,30 @@ func (r xilinxContainerRuntime) modificationRequired(args []string) bool {
 	return false
 }
 
+// check if it is 'create' command
+func (r xilinxContainerRuntime) addDeviceExlusionsRequired(args []string) bool {
+	var previousWasBundle bool
+	for _, a := range args {
+		// We check for '--bundle|-b create' explicitly to ensure
+		// that we don't inadvertently trigger a modification if the bundle
+		// directory is specified as 'create'
+		if !previousWasBundle && isBundleFlag(a) {
+			previousWasBundle = true
+			continue
+		}
+
+		if !previousWasBundle && (a == "create") {
+			r.logger.Infof("'create' command detected, device status update required")
+			return true
+		}
+
+		previousWasBundle = false
+	}
+
+	r.logger.Infof("No device status update required")
+	return false
+}
+
 // check if it is 'delete' command
 func (r xilinxContainerRuntime) deleteDeviceExlusionsRequired(args []string) bool {
 	var previousWasBundle bool
@@ -279,7 +303,48 @@ func (r xilinxContainerRuntime) modifyOCISpec() error {
 	return nil
 }
 
-// delete device exclusions while deleting current container
+// check and add device exclusions while creating the container
+func (r xilinxContainerRuntime) addDeviceExclusions(spec *specs.Spec) error {
+	visibleXilinxDevices, err := r.getVisibleDevices(spec)
+	if err != nil {
+		return err
+	} else if visibleXilinxDevices == nil || len(visibleXilinxDevices) == 0 {
+		return nil
+	} else {
+		r.logger.Infof("Updating device exclusions status for %d device(s)", len(visibleXilinxDevices))
+	}
+
+	// get current device exclusion status from file
+	deviceExlusions, err := r.getDeviceExlusions()
+	if err != nil {
+		return err
+	}
+
+	// check whether requested device(s) are excluded by another container
+	for _, device := range visibleXilinxDevices {
+		if deviceExlusions[device.DBDF] {
+			r.logger.Printf("Device %s is being used exlusively by another container", device.DBDF)
+			return fmt.Errorf("Device %s is being used exlusively by another container", device.DBDF)
+		}
+	}
+
+	// check whether it is in device exclusive mode
+	if r.deviceExlusionEnabled(spec) {
+		for _, device := range visibleXilinxDevices {
+			r.logger.Printf("Device %s will be used exlusively by this container", device.DBDF)
+			deviceExlusions[device.DBDF] = true
+		}
+		// flush the device exclusion status into file
+		err = r.setDeviceExlusions(deviceExlusions)
+		if err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+// delete device exclusions while deleting the container
 func (r xilinxContainerRuntime) deleteDeviceExclusions(spec *specs.Spec) error {
 
 	if !r.deviceExlusionEnabled(spec) {
@@ -325,34 +390,6 @@ func (r xilinxContainerRuntime) addXilinxDevices(spec *specs.Spec) error {
 		return nil
 	} else {
 		r.logger.Infof("There is %d device(s) to be mounted", len(visibleXilinxDevices))
-	}
-
-	// get current device exclusion status from file
-	deviceExlusions, err := r.getDeviceExlusions()
-	if err != nil {
-		return err
-	}
-
-	// check whether requested device(s) are excluded by another container
-	for _, device := range visibleXilinxDevices {
-		if deviceExlusions[device.DBDF] {
-			r.logger.Printf("Device %s is being used exlusively by another container", device.DBDF)
-			return fmt.Errorf("Device %s is being used exlusively by another container", device.DBDF)
-		}
-	}
-
-	// check whether it is in device exclusive mode
-	if r.deviceExlusionEnabled(spec) {
-		for _, device := range visibleXilinxDevices {
-			r.logger.Printf("Device %s will be used exlusively by this container", device.DBDF)
-			deviceExlusions[device.DBDF] = true
-		}
-		// flush the device exclusion status into file
-		err = r.setDeviceExlusions(deviceExlusions)
-		if err != nil {
-			return err
-		}
-
 	}
 
 	for _, device := range visibleXilinxDevices {
@@ -426,7 +463,20 @@ func (r xilinxContainerRuntime) addXilinxDevices(spec *specs.Spec) error {
 func (r xilinxContainerRuntime) Exec(args []string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	// Check wehther it is rquired to modify the OCI spec
+
+	// Update device exclusion status if required
+	if r.addDeviceExlusionsRequired(args) {
+		err := r.ocispec.Load()
+		if err != nil {
+			return fmt.Errorf("error loading OCI specification for modification: %v", err)
+		}
+		err = r.ocispec.Modify(r.addDeviceExclusions)
+		if err != nil {
+			return fmt.Errorf("Fail to update device exlusion status: %v", err)
+		}
+	}
+
+	// Add xilinx devices in OCI Spec if required
 	if r.modificationRequired(args) {
 		err := r.modifyOCISpec()
 		if err != nil {
@@ -434,6 +484,7 @@ func (r xilinxContainerRuntime) Exec(args []string) error {
 		}
 	}
 
+	// delete device exclusion status if required
 	if r.deleteDeviceExlusionsRequired(args) {
 		err := r.ocispec.Load()
 		if err != nil {
@@ -445,6 +496,7 @@ func (r xilinxContainerRuntime) Exec(args []string) error {
 		}
 	}
 
+	// Forward command to inner runtime(runC) if required
 	if r.forwardingRequired(args) {
 		r.logger.Println("Forwarding command to underlying runtime")
 		return r.runtime.Exec(args)

@@ -159,7 +159,7 @@ func getConfig() (*config, error) {
 
 	cfg.debugFilePath = toml.GetDefault("xilinx-container-runtime.debug", "/dev/null").(string)
 	cfg.exclusive = toml.GetDefault("device-exclusion.enabled", false).(bool)
-	cfg.exclusionFilePath = toml.GetDefault("device-exclusion.exclusionFilePath", "/etc/xilinx-container-runtime/device-exclusion.json").(string)
+	cfg.exclusionFilePath = toml.GetDefault("device-exclusion.filepath", "/var/tmp/xilinx-device-exclusion.json").(string)
 
 	return cfg, nil
 }
