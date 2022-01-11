@@ -55,6 +55,9 @@ After updating /etc/docker/daemon.json, it's required to restart docker service 
     sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=0 xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
     sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_CARDS=all 900497858702.dkr.ecr.us-west-2.amazonaws.com/faas-test:GA1.5-al2-rc5-public /bin/bash
     sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_CARDS=0 900497858702.dkr.ecr.us-west-2.amazonaws.com/faas-test:GA1.5-al2-rc5-public /bin/bash
+
+For docker usage, we can enable device exclusive mode, which allows devices to be assigned to one container exclusively. It is easy to be enabled by setting the environment variable 'XILINX_DEVICE_EXCLUSIVE' to 'true'.
+
     sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=all -e XILINX_DEVICE_EXLUSIVE=true xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
     
 ## Integrate with podman:
