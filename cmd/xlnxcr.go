@@ -240,8 +240,10 @@ func (r xilinxContainerRuntime) deviceExlusionEnabled(spec *specs.Spec) bool {
 }
 
 // get current device exclusion stats from file
-func (r xilinxContainerRuntime) getDeviceExlusions() (map[string]bool, error) {
-	exclusions := make(map[string]bool)
+// -1 meaning device is being used by a container exclusively
+// non-negtive integers meaning the number of containers are sharing the device
+func (r xilinxContainerRuntime) getDeviceExlusions() (map[string]int, error) {
+	exclusions := make(map[string]int)
 	if _, err := os.Stat(r.cfg.exclusionFilePath); os.IsNotExist(err) {
 		return exclusions, nil
 	}
@@ -265,7 +267,7 @@ func (r xilinxContainerRuntime) getDeviceExlusions() (map[string]bool, error) {
 }
 
 // save device exclusion stats into file
-func (r xilinxContainerRuntime) setDeviceExlusions(exclusions map[string]bool) error {
+func (r xilinxContainerRuntime) setDeviceExlusions(exclusions map[string]int) error {
 	file, err := os.Create(r.cfg.exclusionFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening device exlusion file: %v", err)
@@ -320,37 +322,43 @@ func (r xilinxContainerRuntime) addDeviceExclusions(spec *specs.Spec) error {
 		return err
 	}
 
-	// check whether requested device(s) are excluded by another container
-	for _, device := range visibleXilinxDevices {
-		if deviceExlusions[device.DBDF] {
-			r.logger.Printf("Device %s is being used exlusively by another container", device.DBDF)
-			return fmt.Errorf("Device %s is being used exlusively by another container", device.DBDF)
+	// check whether it is in device exclusive mode
+	if r.deviceExlusionEnabled(spec) {
+		// In device exlucsive mode, assign device to this
+		// container only if the current device exclusion value is 0
+		for _, device := range visibleXilinxDevices {
+			if deviceExlusions[device.DBDF] != 0 {
+				r.logger.Printf("Device %s is being used by another container", device.DBDF)
+				return fmt.Errorf("Device %s is being used by another container", device.DBDF)
+			} else {
+				r.logger.Printf("Device %s will be used exlusively by this container", device.DBDF)
+				deviceExlusions[device.DBDF] = -1
+			}
+		}
+	} else {
+		// Not in device exclusive mode, assign device to this
+		// container if current device exclusion value is not -1
+		for _, device := range visibleXilinxDevices {
+			if deviceExlusions[device.DBDF] == -1 {
+				r.logger.Printf("Device %s is being used exlusively by another container", device.DBDF)
+				return fmt.Errorf("Device %s is being used exlusively by another container", device.DBDF)
+			} else {
+				r.logger.Printf("Device %s will be used by this container", device.DBDF)
+				deviceExlusions[device.DBDF] = deviceExlusions[device.DBDF] + 1
+			}
 		}
 	}
 
-	// check whether it is in device exclusive mode
-	if r.deviceExlusionEnabled(spec) {
-		for _, device := range visibleXilinxDevices {
-			r.logger.Printf("Device %s will be used exlusively by this container", device.DBDF)
-			deviceExlusions[device.DBDF] = true
-		}
-		// flush the device exclusion status into file
-		err = r.setDeviceExlusions(deviceExlusions)
-		if err != nil {
-			return err
-		}
-
+	// flush the device exclusion status into file
+	err = r.setDeviceExlusions(deviceExlusions)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
 // delete device exclusions while deleting the container
 func (r xilinxContainerRuntime) deleteDeviceExclusions(spec *specs.Spec) error {
-
-	if !r.deviceExlusionEnabled(spec) {
-		r.logger.Infof("Deivce exclusive is not enabled for this container")
-		return nil
-	}
 
 	visibleXilinxDevices, err := r.getVisibleDevices(spec)
 	if err != nil {
@@ -368,8 +376,15 @@ func (r xilinxContainerRuntime) deleteDeviceExclusions(spec *specs.Spec) error {
 		return err
 	}
 
+	isExclusiveMode := r.deviceExlusionEnabled(spec)
 	for _, device := range visibleXilinxDevices {
-		deviceExlusions[device.DBDF] = false
+		if isExclusiveMode {
+			// set the exclusion value 0 from -1
+			deviceExlusions[device.DBDF] = 0
+		} else {
+			// do a decrement from current value
+			deviceExlusions[device.DBDF] = deviceExlusions[device.DBDF] - 1
+		}
 	}
 
 	// flush the device exclusion status into file
