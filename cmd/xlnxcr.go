@@ -290,7 +290,7 @@ func (r xilinxContainerRuntime) setDeviceExlusions(devices map[string]int) error
 	currentTime := time.Now().Format("2006-01-02 3:4:5 pm")
 	exclusions := xilinxDeviceExclusions{
 		Notice: fmt.Sprintf(
-			"This file stores the status of xilinx devices usage, which was saved on %s. '-1' means the device is being used exclusively. 0 and positive integers mean the number of containers currently using respective device.",
+			"This file stores the status of xilinx devices usage, which was saved on %s. '-1' means the device is being used exclusively. 0 or positive integer is the number of containers currently using respective device.",
 			currentTime),
 		Devices: devices,
 	}
