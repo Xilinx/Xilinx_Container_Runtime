@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Xilinx/xilinx-container-runtime/pkg/oci"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -43,6 +44,11 @@ type xilinxContainerRuntime struct {
 	runtime oci.Runtime
 	ocispec oci.Spec
 	mutex   *sync.Mutex
+}
+
+type xilinxDeviceExclusions struct {
+	Notice  string         `json:"notice"`
+	Devices map[string]int `json:"devices"`
 }
 
 var _ oci.Runtime = (*xilinxContainerRuntime)(nil)
@@ -128,7 +134,7 @@ func (r xilinxContainerRuntime) deleteDeviceExlusionsRequired(args []string) boo
 		previousWasBundle = false
 	}
 
-	r.logger.Infof("No device status update required")
+	r.logger.Infof("Not 'delete' commnad, not updating device status")
 	return false
 }
 
@@ -243,9 +249,12 @@ func (r xilinxContainerRuntime) deviceExlusionEnabled(spec *specs.Spec) bool {
 // -1 meaning device is being used by a container exclusively
 // non-negtive integers meaning the number of containers are sharing the device
 func (r xilinxContainerRuntime) getDeviceExlusions() (map[string]int, error) {
-	exclusions := make(map[string]int)
+	exclusions := xilinxDeviceExclusions{
+		Notice:  "",
+		Devices: make(map[string]int),
+	}
 	if _, err := os.Stat(r.cfg.exclusionFilePath); os.IsNotExist(err) {
-		return exclusions, nil
+		return exclusions.Devices, nil
 	}
 
 	file, err := os.Open(r.cfg.exclusionFilePath)
@@ -263,11 +272,11 @@ func (r xilinxContainerRuntime) getDeviceExlusions() (map[string]int, error) {
 		return nil, fmt.Errorf("error reading device exlusions from file: %v", err)
 	}
 
-	return exclusions, nil
+	return exclusions.Devices, nil
 }
 
 // save device exclusion stats into file
-func (r xilinxContainerRuntime) setDeviceExlusions(exclusions map[string]int) error {
+func (r xilinxContainerRuntime) setDeviceExlusions(devices map[string]int) error {
 	file, err := os.Create(r.cfg.exclusionFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening device exlusion file: %v", err)
@@ -277,6 +286,14 @@ func (r xilinxContainerRuntime) setDeviceExlusions(exclusions map[string]int) er
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
+
+	currentTime := time.Now().Format("2006-01-02 3:4:5 pm")
+	exclusions := xilinxDeviceExclusions{
+		Notice: fmt.Sprintf(
+			"This file stores the status of xilinx devices usage, which was saved on %s. '-1' means the device is being used exclusively. 0 and positive integers mean the number of containers currently using respective device.",
+			currentTime),
+		Devices: devices,
+	}
 
 	err = encoder.Encode(exclusions)
 	if err != nil {
@@ -350,6 +367,7 @@ func (r xilinxContainerRuntime) addDeviceExclusions(spec *specs.Spec) error {
 	}
 
 	// flush the device exclusion status into file
+	r.logger.Printf("Trying to updated device exlusion status to file.")
 	err = r.setDeviceExlusions(deviceExlusions)
 	if err != nil {
 		return err
@@ -388,6 +406,7 @@ func (r xilinxContainerRuntime) deleteDeviceExclusions(spec *specs.Spec) error {
 	}
 
 	// flush the device exclusion status into file
+	r.logger.Printf("Trying to updated device exlusion status to file.")
 	err = r.setDeviceExlusions(deviceExlusions)
 	if err != nil {
 		return err
@@ -487,7 +506,8 @@ func (r xilinxContainerRuntime) Exec(args []string) error {
 		}
 		err = r.ocispec.Modify(r.addDeviceExclusions)
 		if err != nil {
-			return fmt.Errorf("Fail to update device exlusion status: %v", err)
+			return fmt.Errorf("Fail to update device exlusion status: %v. Please refer to file %s for details",
+				err, r.cfg.exclusionFilePath)
 		}
 	}
 
