@@ -10,7 +10,26 @@ MODULE := .
 all: build
 
 build: fmt check deps
-	go build -o xilinx-container-runtime -ldflags "-s -w -X 'main.Version=$(LIB_VERSION)' -X 'main.GoVersion=$(GO_VERSION)' -X 'main.BuildTime=$(BUILD_TIME)'" $(MODULE)/cmd/...
+	go build -o $(LIB_NAME) -ldflags "-s -w -X 'main.Version=$(LIB_VERSION)' -X 'main.GoVersion=$(GO_VERSION)' -X 'main.BuildTime=$(BUILD_TIME)'" $(MODULE)/cmd/...
+
+# build deb package
+debian: build
+	mkdir -p $(LIB_NAME)_$(LIB_VERSION)_amd64/DEBIAN
+	cp ./DEBIAN/control ./$(LIB_NAME)_$(LIB_VERSION)_amd64/DEBIAN
+	mkdir -p $(LIB_NAME)_$(LIB_VERSION)_amd64/usr/bin
+	cp ./$(LIB_NAME) ./$(LIB_NAME)_$(LIB_VERSION)_amd64/usr/bin
+	mkdir -p $(LIB_NAME)_$(LIB_VERSION)_amd64/etc/$(LIB_NAME)
+	cp ./configs/xilinx-container-runtime/config.toml ./$(LIB_NAME)_$(LIB_VERSION)_amd64/etc/$(LIB_NAME)
+	dpkg-deb --build --root-owner-group $(LIB_NAME)_$(LIB_VERSION)_amd64
+	rm -rf $(LIB_NAME)_$(LIB_VERSION)_amd64
+
+# build rpm package
+rpm: build
+	mkdir -p ./rpm/SOURCES
+	cp ./$(LIB_NAME) ./rpm/SOURCES
+	cp ./configs/xilinx-container-runtime/config.toml ./rpm/SOURCES
+	cd ./rpm && rpmbuild --define "_topdir `pwd`" -bb SPECS/xilinx-container-runtime.spec
+	cp ./rpm/RPMS/x86_64/* ./
 
 # Define the check targets for the Golang codebase
 .PHONY: check fmt assert-fmt ineffassign lint vet
@@ -47,4 +66,4 @@ install:
 	cp ./configs/xilinx-container-runtime/config.toml /etc/xilinx-container-runtime/config.toml
 
 clean:
-	rm ./xilinx-container-runtime
+	rm -rf ./xilinx-container-runtime*
