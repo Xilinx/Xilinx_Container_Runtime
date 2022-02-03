@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Xilinx/xilinx-container-runtime/pkg/oci"
+	"github.com/Xilinx/xilinx-container-runtime/src/pkg/oci"
 )
 
 const (

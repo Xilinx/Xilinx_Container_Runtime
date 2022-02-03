@@ -14,7 +14,7 @@
  License for the specific language governing permissions and limitations
  under the License. 
 -->
-# Xinlinx-Container-Runtime
+# Xilinx-Container-Runtime
 
 Xilinx-container-runtime is an extension of runc, with modification to add xilinx devices before running containers.
 
@@ -26,15 +26,26 @@ Xilinx-container-runtime is an extension of runc, with modification to add xilin
     
     sudo make install
 
-## Usage:
+## Usage
     
+By running xilinx-container-runtime, it is required to have runC installed. If docker has been installed, the runC is installed already.
+
+    # Create OCI specs
     xilinx-container-runtime spec
+
+    # Create root file system for container
     mkdir rootfs
+    
+    # Export a docker image as the root file system
     docker export $(docker create xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04) | tar -C rootfs -xvf -
-    XILINX_VISIBLE_DEVICES=all xilinx-container-runtime run xrt_base
+    
+    # Starting a container and inject xilinx devices
+    # Accepted value for XILINX_VISIBLE_DEVICES include 0,1,...|all 
+    XILINX_VISIBLE_DEVICES=0 xilinx-container-runtime run xrt_base
+    # Accepted value for XILINX_VISIBLE_CARDS include 0,1,...|all
     XILINX_VISIBLE_CARDS=0 xilinx-container-runtime run xrt_base
 
-## Integrate with docker:
+## Integrate with docker
 
 Update or create /etc/docker/daemon.json as below:
 
@@ -47,7 +58,7 @@ Update or create /etc/docker/daemon.json as below:
         }
     }
 
-After updating /etc/docker/daemon.json, it's required to restart docker service to register xilinx-container-runtime.
+After updating /etc/docker/daemon.json, it is required to restart docker service to register xilinx-container-runtime.
 
     sudo systemctl restart docker
 
@@ -60,7 +71,7 @@ For docker usage, we can enable device exclusive mode, which allows devices to b
 
     sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=all -e XILINX_DEVICE_EXLUSIVE=true xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
     
-## Integrate with podman:
+## Integrate with podman
 
 Specify the runtime by absolute file path:
 
@@ -77,7 +88,9 @@ Then you can specify the runtime as xilinx.
     sudo podman run -it --rm --runtime=xilinx -e XILINX_VISIBLE_CARDS=0 docker.io/xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
 
 
-## Singularity
+## Singularity OCI Support
+
+Currently, xilinx container runtime partly supports singularity. Before running a singularity OCI container, OCI specs can be modified by 'modify' command.
 
     singularity pull docker://xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04
     sudo singularity oci mount ./xilinx_runtime_base_alveo-2021.1-ubuntu-20.04.sif /var/tmp/xilinx_runtime_base_alveo-2021.1-ubuntu-20.04

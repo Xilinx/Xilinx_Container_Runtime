@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Xilinx/xilinx-container-runtime/pkg/oci"
+	"github.com/Xilinx/xilinx-container-runtime/src/pkg/oci"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	log "github.com/sirupsen/logrus"
 )
