@@ -47,7 +47,7 @@ By running xilinx-container-runtime, it is required to have runC installed. If d
 
 ## Integrate with docker
 
-Update or create /etc/docker/daemon.json as below:
+Docker allows users to add custom runtime by editing /etc/docker/daemon.json in "runtimes" part. Below is a code snap to add xilinx container runtime. 
 
     {
         "runtimes": {

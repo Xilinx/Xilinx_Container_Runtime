@@ -1,7 +1,7 @@
-Integration with Singularity OCI
+Singularity OCI Support
 --------------------------------
 
-Singularity provides OCI runtime support to create OCI compilant container instance. Xilinx container runtime is able to integrate with OCI command to add xilinx devices.
+Singularity provides OCI runtime support to create OCI compilant container instance. Before starting a container, xilinx container runtime is able to modify the OCI specs to add xilinx devices. Here is a example.
 
 Mount an OCI Filesystem Bundle
 ..............................
@@ -12,8 +12,8 @@ Mount an OCI Filesystem Bundle
    sudo singularity oci mount ./xilinx_runtime_base_alveo-2021.1-ubuntu-20.04.sif /var/tmp/xilinx_runtime_base_alveo-2021.1-ubuntu-20.04
 
 
-Modify OCI Configuration
-........................
+Modify OCI Specs
+................
 
 .. code-block:: bash
 
