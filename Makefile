@@ -63,7 +63,7 @@ install:
 	else \
 		mkdir /etc/xilinx-container-runtime; \
     fi
-	cp ./configs/xilinx-container-runtime/config.toml /etc/xilinx-container-runtime/config.toml
+	cp ./src/configs/xilinx-container-runtime/config.toml /etc/xilinx-container-runtime/config.toml
 
 clean:
 	rm -rf ./xilinx-container-runtime*

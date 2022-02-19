@@ -2,5 +2,5 @@
 debug = "/var/log/xilinx-container-runtime.log"
 
 [device-exclusion]
-enabled = false
+enabled = true
 filepath = "/var/tmp/xilinx-device-exclusion.json"

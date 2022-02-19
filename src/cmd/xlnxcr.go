@@ -32,9 +32,9 @@ import (
 )
 
 const (
-	envXLNXVisibleDevices = "XILINX_VISIBLE_DEVICES"
-	envXLNXVisibleCards   = "XILINX_VISIBLE_CARDS"
-	envXLNXDeviceExlusive = "XILINX_DEVICE_EXLUSIVE"
+	envXLNXVisibleDevices  = "XILINX_VISIBLE_DEVICES"
+	envXLNXVisibleCards    = "XILINX_VISIBLE_CARDS"
+	envXLNXDeviceExclusive = "XILINX_DEVICE_EXCLUSIVE"
 )
 
 // xilinxContainerRuntime wraps specified runtime, conditionally modifying OCI spec before invoking the spcified runtime
@@ -226,16 +226,16 @@ func (r xilinxContainerRuntime) deviceExlusionEnabled(spec *specs.Spec) bool {
 				continue
 			}
 
-			if parts[0] == envXLNXDeviceExlusive {
+			if parts[0] == envXLNXDeviceExclusive {
 				deviceExclusiveEnv = parts[1]
 			}
 		}
 	}
 
 	if deviceExclusiveEnv != "" {
-		exlusive, err := strconv.ParseBool(strings.ToLower(deviceExclusiveEnv))
+		exclusive, err := strconv.ParseBool(strings.ToLower(deviceExclusiveEnv))
 		if err == nil {
-			return exlusive
+			return exclusive
 		} else {
 			r.logger.Printf("error getting device exclusive enable status %v", err)
 			return r.cfg.exclusive
@@ -348,7 +348,7 @@ func (r xilinxContainerRuntime) addDeviceExclusions(spec *specs.Spec) error {
 				r.logger.Printf("Device %s is being used by another container", device.DBDF)
 				return fmt.Errorf("Device %s is being used by another container", device.DBDF)
 			} else {
-				r.logger.Printf("Device %s will be used exlusively by this container", device.DBDF)
+				r.logger.Printf("Device %s will be used exclusively by this container", device.DBDF)
 				deviceExlusions[device.DBDF] = -1
 			}
 		}
@@ -357,8 +357,8 @@ func (r xilinxContainerRuntime) addDeviceExclusions(spec *specs.Spec) error {
 		// container if current device exclusion value is not -1
 		for _, device := range visibleXilinxDevices {
 			if deviceExlusions[device.DBDF] == -1 {
-				r.logger.Printf("Device %s is being used exlusively by another container", device.DBDF)
-				return fmt.Errorf("Device %s is being used exlusively by another container", device.DBDF)
+				r.logger.Printf("Device %s is being used exclusively by another container", device.DBDF)
+				return fmt.Errorf("Device %s is being used exclusively by another container", device.DBDF)
 			} else {
 				r.logger.Printf("Device %s will be used by this container", device.DBDF)
 				deviceExlusions[device.DBDF] = deviceExlusions[device.DBDF] + 1
