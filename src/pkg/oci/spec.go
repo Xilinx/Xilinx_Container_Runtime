@@ -92,7 +92,6 @@ func (s fileSpec) Flush() error {
 	defer specFile.Close()
 
 	encoder := json.NewEncoder(specFile)
-	encoder.SetIndent("", "  ")
 
 	err = encoder.Encode(s.Spec)
 	if err != nil {
