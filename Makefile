@@ -15,7 +15,7 @@
 #
 
 LIB_NAME := xilinx-container-runtime
-LIB_VERSION := 0.0.1
+LIB_VERSION := 1.0.0
 GO_VERSION := $(shell go version | cut -c 14- | cut -d' ' -f1)
 BUILD_TIME := $(shell date +"%Y-%m-%d")
 
