@@ -52,6 +52,7 @@ const (
 	AristaVendorID = "0x3475"
 )
 
+// Usually, there is management PF and uer PF within one Xilinx device
 type pairs struct {
 	Mgmt string
 	User string
@@ -68,6 +69,7 @@ type xilinxDevice struct {
 	Nodes     *pairs
 }
 
+// For some Xilinx card, like U30, there is multiple devices
 type xilinxCard struct {
 	index   int
 	devices []xilinxDevice

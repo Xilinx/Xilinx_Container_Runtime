@@ -15,3 +15,8 @@
 
 Release Note
 ============
+
+Version 1.0.0
+-------------
+
+Xilinx-container-runtime is an extension of runc, with modification to add xilinx devices before running containers.
