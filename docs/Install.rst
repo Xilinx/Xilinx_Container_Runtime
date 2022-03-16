@@ -18,25 +18,6 @@
 Install Xilinx Container Runtime
 --------------------------------
 
-Install the RPM package
-.......................
-
-::
-
-   wget https://.../xilinx-container-runtime_version.rpm
-   sudo yum reinstall ./xilinx-container-runtme_version.rpm
-
-
-Install the DEB package
-.......................
-
-::
-
-   wget https://.../xilinx-container-runtime_version.deb
-   sudo apt install  --reinstall ./xilinx-container-runtme_version.deb
-
-
-
 Build and Install from source code
 ..................................
 
