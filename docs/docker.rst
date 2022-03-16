@@ -75,8 +75,8 @@ Notice: If the default runtime was set in /etc/docker/daemon.json, --runtime fla
 Assign Device Exclusively
 .........................
 
-For docker usage, we can enable device exclusive mode, which allows devices to be assigned to one container exclusively. It is easy to be enabled by setting the environment variable 'XILINX_DEVICE_EXCLUSIVE' to 'true'.
+For docker usage, we are using device exclusive mode by default, which assigns some device only to one container exclusively. It is easy to be disabled by setting the environment variable 'XILINX_DEVICE_EXCLUSIVE' to 'false'.
 
 .. code-block:: bash
 
-   sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=all -e XILINX_DEVICE_EXLUSIVE=true xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
+   sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=all -e XILINX_DEVICE_EXLUSIVE=false xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
