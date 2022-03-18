@@ -17,7 +17,8 @@ Command Line Tool
 -----------------
 
 Xilinx Container Runtime provides command line tool to show detailed Xilinx devices info on the host.
-For some Xilinx FPGA cards, like U30, there is more than one device. Details are as below.
+For some Xilinx FPGA cards, like U30, there is more than one device.
+As shown in the following example, these two devices belong to the same Xilinx U30 card, with the card index 0. And you will be getting the indices of these two devices by 'lsdevice' command.
 
 List Card(s)
 ............
@@ -25,7 +26,7 @@ List Card(s)
 .. code-block:: bash
 
     xilinx-container-runtime lscard
-    CardNum 	    SerialNum       DeviceBDF           UserPF                  MgmtPF                  ShellVersion
+    CardIndex 	    SerialNum       DeviceBDF           UserPF                  MgmtPF                  ShellVersion
     0               XFL1YV0M20E0    0000:00:1e.0        /dev/dri/renderD128                             xilinx_u30_gen3x4_base_1
     0               XFL1YV0M20E0    0000:00:1f.0        /dev/dri/renderD129                             xilinx_u30_gen3x4_base_1
 
@@ -36,7 +37,7 @@ List Device(s)
 .. code-block:: bash
 
     xilinx-container-runtime lsdevice
-    DeviceNum 	    SerialNum       DeviceBDF           UserPF                  MgmtPF                  ShellVersion
+    DeviceIndex     SerialNum       DeviceBDF           UserPF                  MgmtPF                  ShellVersion
     0               XFL1YV0M20E0    0000:00:1e.0        /dev/dri/renderD128                             xilinx_u30_gen3x4_base_1
     1               XFL1YV0M20E0    0000:00:1f.0        /dev/dri/renderD129                             xilinx_u30_gen3x4_base_1
 

@@ -103,7 +103,7 @@ func printDevices() {
 		fmt.Fprintf(os.Stderr, err.Error())
 	}
 
-	fmt.Fprintf(os.Stderr, "DeviceNum\tSerialNum\tDeviceBDF\tUserPF\t\t\tMgmtPF\t\t\tShellVersion\n")
+	fmt.Fprintf(os.Stderr, "DeviceIndex\tSerialNum\tDeviceBDF\tUserPF\t\t\tMgmtPF\t\t\tShellVersion\n")
 	for _, xilinxDevice := range xilinxDevices {
 		fmt.Fprintf(os.Stderr, "%-16s%-16s%-16s%-24s%-24s%s\n",
 			xilinxDevice.index, xilinxDevice.SN, xilinxDevice.DBDF,
@@ -117,7 +117,7 @@ func printCards() {
 		fmt.Fprintf(os.Stderr, err.Error())
 	}
 
-	fmt.Fprintf(os.Stderr, "CardNum\t\tSerialNum\tDeviceBDF\tUserPF\t\t\tMgmtPF\t\t\tShellVersion\n")
+	fmt.Fprintf(os.Stderr, "CardIndex\tSerialNum\tDeviceBDF\tUserPF\t\t\tMgmtPF\t\t\tShellVersion\n")
 	for _, xilinxCard := range xilinxCards {
 		for _, xilinxDevice := range xilinxCard.devices {
 			fmt.Fprintf(os.Stderr, "%-16d%-16s%-16s%-24s%-24s%s\n",

@@ -19,4 +19,4 @@ Release Note
 Version 1.0.0
 -------------
 
-Xilinx-container-runtime is an extension of runc, with modification to add xilinx devices before running containers.
+Xilinx-container-runtime is an extension of runc, with modification to add xilinx devices before running containers. Xilinx container runtime provides command line tool to list Xilinx device(s) or card(s) on host machine, and interface to map Xilinx devices into containers per card or device level. Also, it is easy to integrate Xilinx container runtime with Docker and Podman.

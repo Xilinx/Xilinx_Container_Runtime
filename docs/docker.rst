@@ -16,7 +16,7 @@
 Integration with Docker
 -----------------------
 
-Xilinx container runtime was designed to integrate with docker easily.
+Xilinx container runtime is designed to integrate with docker easily.
 
 Add Xilinx Container Runtime into Docker
 ........................................
@@ -51,7 +51,7 @@ Optionally, you can set xilinx as the default container runtime for docker.
 Restart Docker Service
 ......................
 
-After updating /etc/docker/daemon.json, it's required to restart docker service to register xilinx-container-runtime.
+After updating /etc/docker/daemon.json, it's required to restart docker service for the registration of xilinx-container-runtime being effective.
 
 .. code-block:: bash
 
@@ -61,22 +61,24 @@ After updating /etc/docker/daemon.json, it's required to restart docker service 
 Start a Container
 .................
 
-Xilinx container runtime can be specified using --runtime flag.
+Xilinx container runtime can be specified using --runtime flag. If the default runtime was set in /etc/docker/daemon.json, --runtime flag can be omitted.
 
-Notice: If the default runtime was set in /etc/docker/daemon.json, --runtime flag can be omitted.
+For environment variables XILINX_VISIBLE_DEVICES and XILINX_VISIBLE_CARDS, the acceptable values include 'all' and comma separated integers of card or device index which can be got from previous command line tools.
+
+**Note: For docker usage, we are using device exclusive mode by default, which assigns some device only to one container exclusively. In this mode, a device will be locked to the specific container from the time of container being created, instead of the time of container being started, till the container is removed. The device would still be locked, if the container is only stopped, but not removed.**
 
 .. code-block:: bash
 
    sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=all xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
-   sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=0 xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
+   sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=0,1 xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
    sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_CARDS=all xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
    sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_CARDS=0 xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
 
-Assign Device Exclusively
-.........................
+Disable Device Exclusive Mode
+.............................
 
-For docker usage, we are using device exclusive mode by default, which assigns some device only to one container exclusively. It is easy to be disabled by setting the environment variable 'XILINX_DEVICE_EXCLUSIVE' to 'false'.
+It is easy to disable the device exclusive mode by setting the environment variable 'XILINX_DEVICE_EXCLUSIVE' to 'false'.
 
 .. code-block:: bash
 
-   sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=all -e XILINX_DEVICE_EXLUSIVE=false xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash
+   sudo docker run -it --rm --runtime=xilinx -e XILINX_VISIBLE_DEVICES=all -e XILINX_DEVICE_EXCLUSIVE=false xilinx/xilinx_runtime_base:alveo-2021.1-ubuntu-20.04 /bin/bash

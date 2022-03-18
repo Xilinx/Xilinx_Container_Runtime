@@ -9,10 +9,10 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}",
-            "args": ["lsdevice"],
+            "program": "${fileDirname}/../src/cmd",
+            "args": ["lscard"],
             "env": {
-                "XCRT_CONFIG_HOME": ".././configs"
+                "XCRT_CONFIG_HOME": "../configs"
             }
         }
     ]

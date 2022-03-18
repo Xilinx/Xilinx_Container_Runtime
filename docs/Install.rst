@@ -25,7 +25,7 @@ Get Source Code
 
 ::
 
-   git clone https://gitenterprise.xilinx.com/FaaSApps/Xilinx_Container_Runtime.git
+   git clone https://github.com/Xilinx/Xilinx_Container_Runtime.git
 
 
 Build and install xilinx container runtime requires golang 17.1+.

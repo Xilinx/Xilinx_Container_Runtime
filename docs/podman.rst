@@ -16,7 +16,7 @@
 Integration with Podman
 -----------------------
 
-Podman is an alternative to docker, with which xilixn container runtime is able to integrate.
+Podman is an alternative to docker, with which xilinx container runtime is able to integrate.
 
 Run with Absolute File Path
 ...........................
