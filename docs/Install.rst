@@ -18,7 +18,7 @@
 Install Xilinx Container Runtime
 --------------------------------
 
-Build and Install from source code
+Build and Install from Source Code
 ..................................
 
 Get Source Code
@@ -28,13 +28,28 @@ Get Source Code
    git clone https://github.com/Xilinx/Xilinx_Container_Runtime.git
 
 
-Build and install xilinx container runtime requires golang 17.1+.
+Build and install xilinx container runtime requires golang 1.17.1+.
 
 ::
 
     cd Xilinx_Container_Runtime
+
+    # Check required dependencies
+    ./configure
+    
+    # Build binary
     make
+    
+    # Xilinx Container Runtime will be installed into /usr/bin by default
     sudo make install
+
+
+To install Xilinx Contaienr Runtime in a different location, the destination directory can be specified while installing.
+
+::
+
+    sudo make install DESTDIR=/opt/xilinx/xcr/bin
+    sudo export PATH=$PATH:/opt/xilinx/xcr/bin
 
 
 Test

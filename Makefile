@@ -18,6 +18,7 @@ LIB_NAME := xilinx-container-runtime
 LIB_VERSION := 1.0.0
 GO_VERSION := $(shell go version | cut -c 14- | cut -d' ' -f1)
 BUILD_TIME := $(shell date +"%Y-%m-%d")
+DESTDIR := /usr/bin
 
 # MODULE := xilinx.com/xilinx-container-runtime
 MODULE := .
@@ -71,11 +72,17 @@ deps:
 	go mod download
 
 install:
-	cp ./xilinx-container-runtime /usr/bin/xilinx-container-runtime
+	@if [ -d "$(DESTDIR)" ]; then \
+        echo "Dir $(DESTDIR) existed"; \
+	else \
+		mkdir -p $(DESTDIR); \
+    fi
+	cp ./xilinx-container-runtime $(DESTDIR)/xilinx-container-runtime
+	
 	@if [ -d "/etc/xilinx-container-runtime" ]; then \
         echo "Dir /etc/xilinx-container-runtime existed"; \
 	else \
-		mkdir /etc/xilinx-container-runtime; \
+		mkdir -p /etc/xilinx-container-runtime; \
     fi
 	cp ./src/configs/xilinx-container-runtime/config.toml /etc/xilinx-container-runtime/config.toml
 

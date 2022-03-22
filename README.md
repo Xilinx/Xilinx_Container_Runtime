@@ -18,6 +18,10 @@
 
 Xilinx-container-runtime is an extension of runc, with modification to add xilinx devices before running containers.
 
+## Check the Dependencies
+
+    ./configure
+
 ## Build
     
     make
@@ -25,6 +29,11 @@ Xilinx-container-runtime is an extension of runc, with modification to add xilin
 ## Install
     
     sudo make install
+
+By default, the binary will be installed under directory /usr/bin. The destination directory can be specified while installing.
+
+    sudo make install DESTDIR=/opt/xilinx/xcr/bin
+    sudo export PATH=$PATH:/opt/xilinx/xcr/bin
 
 ## Usage
     
