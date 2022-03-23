@@ -1,8 +1,0 @@
-{
-    "runtimes": {
-        "xilinx": {
-            "path": "/usr/bin/xilinx-container-runtime",
-            "runtimeArgs": []
-        }
-    }
-}

@@ -1,5 +1,0 @@
-Package: xilinx-container-runtime
-Version: 0.0.1
-Architecture: amd64
-Maintainer: Xilinx
-Description: Xilinx-container-runtime is an extension of runc, with modification to add xilinx devices before running containers.
