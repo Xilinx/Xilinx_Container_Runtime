@@ -36,6 +36,6 @@ Xilinx container runtime is an extension of runC, with modification to add xilin
 
 ### [Integration with Docker](./docs/docker.rst)
 
-### [Integrattion with Podman](./docs/podman.rst)
+### [Integration with Podman](./docs/podman.rst)
 
 ### [Singularity OCI Support](./docs/singularity.rst)
