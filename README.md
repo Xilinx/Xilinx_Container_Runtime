@@ -18,8 +18,9 @@
 
 Xilinx container runtime is an extension of runC, with modification to add xilinx devices before running containers. Since it is a runC compliant runtime, xilinx container runtime can be integrate with various contianer orchestrators, including docker and podman.
 
-![Xilinx Container Runtime Arch](./docs/images/XCRT-Arch.png)
+<image src="./docs/images/XCRT-Arch.png" width=50%>
 
+<br>
 
 ## Quick Start
 
@@ -27,7 +28,8 @@ Xilinx container runtime is an extension of runC, with modification to add xilin
 
 ### [Install Xilinx Container Runtime](./docs/Install.rst)
 
-
+<br>
+ 
 ## User Guide
     
 ### [Command Line Tool](./docs/cli.rst)
