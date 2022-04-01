@@ -29,13 +29,16 @@ import (
 
 type config struct {
 	debugFilePath     string
-	exclusive         bool
+	deviceExclusive   bool
 	exclusionFilePath string
 }
 
 const (
-	configOverride = "XCRT_CONFIG_HOME"
-	configFilePath = "xilinx-container-runtime/config.toml"
+	configOverride       = "XCRT_CONFIG_HOME"
+	configFilePath       = "xilinx-container-runtime/config.toml"
+	debugFilePathKey     = "xilinx-container-runtime.debug"
+	deviceExclusiveKey   = "device-exclusion.enabled"
+	exclusionFilePathKey = "device-exclusion.filepath"
 )
 
 var (
@@ -127,8 +130,8 @@ func printCards() {
 	}
 }
 
+// Instantiate a runtime object and run the command
 func run(argv []string, cfg *config) (err error) {
-
 	r, err := newRuntime(argv, cfg)
 	if err != nil {
 		return fmt.Errorf("error creating runtime: %v", err)
@@ -157,9 +160,9 @@ func getConfig() (*config, error) {
 		return nil, err
 	}
 
-	cfg.debugFilePath = toml.GetDefault("xilinx-container-runtime.debug", "/dev/null").(string)
-	cfg.exclusive = toml.GetDefault("device-exclusion.enabled", true).(bool)
-	cfg.exclusionFilePath = toml.GetDefault("device-exclusion.filepath", "/var/tmp/xilinx-device-exclusion.json").(string)
+	cfg.debugFilePath = toml.GetDefault(debugFilePathKey, "/dev/null").(string)
+	cfg.deviceExclusive = toml.GetDefault(deviceExclusiveKey, true).(bool)
+	cfg.exclusionFilePath = toml.GetDefault(exclusionFilePathKey, "/var/tmp/xilinx-device-exclusion.json").(string)
 
 	return cfg, nil
 }
@@ -181,20 +184,26 @@ func main() {
 	getopt.Getopt(nil)
 	args := getopt.Args()
 
-	if len(args) == 0 {
+	switch argn := len(args); argn {
+	case 0:
+		// No argument found, show version info or usage
 		if *optVersion {
 			printVersion()
 		} else {
 			flag.Usage()
 		}
-	} else if len(args) == 1 {
-		if args[0] == "help" || args[0] == "h" {
+	case 1:
+		// One argument found
+		switch arg0 := args[0]; arg0 {
+		case "help":
 			flag.Usage()
-		} else if args[0] == "lsdevice" {
+		case "h":
+			flag.Usage()
+		case "lsdevice":
 			printDevices()
-		} else if args[0] == "lscard" {
+		case "lscard":
 			printCards()
-		} else {
+		default:
 			err := run(os.Args, cfg)
 			if err != nil {
 				logger.Errorf("Error running %v: %v", os.Args, err)
@@ -202,7 +211,8 @@ func main() {
 				os.Exit(1)
 			}
 		}
-	} else {
+	default:
+		// More than one command found
 		err := run(os.Args, cfg)
 		if err != nil {
 			logger.Errorf("Error running %v: %v", os.Args, err)
