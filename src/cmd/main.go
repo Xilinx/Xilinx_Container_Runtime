@@ -110,7 +110,7 @@ func printDevices() {
 	for _, xilinxDevice := range xilinxDevices {
 		fmt.Fprintf(os.Stderr, "%-16s%-16s%-16s%-24s%-24s%s\n",
 			xilinxDevice.index, xilinxDevice.SN, xilinxDevice.DBDF,
-			xilinxDevice.Nodes.User, xilinxDevice.Nodes.Mgmt, xilinxDevice.shellVer)
+			xilinxDevice.Pair.User, xilinxDevice.Pair.Mgmt, xilinxDevice.shellVer)
 	}
 }
 
@@ -125,7 +125,7 @@ func printCards() {
 		for _, xilinxDevice := range xilinxCard.devices {
 			fmt.Fprintf(os.Stderr, "%-16d%-16s%-16s%-24s%-24s%s\n",
 				xilinxCard.index, xilinxCard.devices[0].SN, xilinxDevice.DBDF,
-				xilinxDevice.Nodes.User, xilinxDevice.Nodes.Mgmt, xilinxCard.devices[0].shellVer)
+				xilinxDevice.Pair.User, xilinxDevice.Pair.Mgmt, xilinxCard.devices[0].shellVer)
 		}
 	}
 }

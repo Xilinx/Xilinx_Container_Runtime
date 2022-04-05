@@ -29,49 +29,49 @@ import (
 )
 
 const (
-	SysfsDevices   = "/sys/bus/pci/devices"
-	MgmtPrefix     = "/dev/xclmgmt"
-	UserPrefix     = "/dev/dri"
-	QdmaPrefix     = "/dev/xfpga"
-	QDMASTR        = "dma.qdma.u"
-	UserPFKeyword  = "drm"
-	DRMSTR         = "renderD"
-	ROMSTR         = "rom"
-	SNSTR          = "xmc.u."
-	DSAverFile     = "VBNV"
-	DSAtsFile      = "timestamp"
-	InstanceFile   = "instance"
-	MgmtFile       = "mgmt_pf"
-	UserFile       = "user_pf"
-	VendorFile     = "vendor"
-	DeviceFile     = "device"
-	SNFile         = "serial_num"
-	XilinxVendorID = "0x10ee"
-	ADVANTECH_ID   = "0x13fe"
-	AWS_ID         = "0x1d0f"
-	AristaVendorID = "0x3475"
+	SysfsDevices      = "/sys/bus/pci/devices"
+	MgmtPrefix        = "/dev/xclmgmt"
+	UserPrefix        = "/dev/dri"
+	QdmaPrefix        = "/dev/xfpga"
+	QDMASTR           = "dma.qdma.u"
+	UserPFKeyword     = "drm"
+	DRMSTR            = "renderD"
+	ROMSTR            = "rom"
+	SNSTR             = "xmc.u."
+	DSAverFile        = "VBNV"
+	DSAtsFile         = "timestamp"
+	InstanceFile      = "instance"
+	MgmtFile          = "mgmt_pf"
+	UserFile          = "user_pf"
+	VendorFile        = "vendor"
+	DeviceFile        = "device"
+	SNFile            = "serial_num"
+	XilinxVendorID    = "0x10ee"
+	AdvantechVendorID = "0x13fe"
+	AWSVendorID       = "0x1d0f"
+	AristaVendorID    = "0x3475"
 )
 
 // Usually, there is management PF and uer PF within one Xilinx device
-type pairs struct {
-	Mgmt string
-	User string
+type xilinxPair struct {
+	Mgmt string // Management function node
+	User string // User function node
 	Qdma string
 }
 
 type xilinxDevice struct {
-	index     string // integer numbered
-	shellVer  string
-	timestamp string
-	DBDF      string // this is for user pf
-	deviceID  string //devid of the user pf
-	SN        string
-	Nodes     *pairs
+	index     string      // integer numbered
+	shellVer  string      // Xilinx shell version
+	timestamp string      // DSA timestamp
+	DBDF      string      // this is for user pf
+	deviceID  string      // devid of the user pf
+	SN        string      // serial number
+	Pair      *xilinxPair // pair with UserPF and MgmtPF node
 }
 
 // For some Xilinx card, like U30, there is multiple devices
 type xilinxCard struct {
-	index   int
+	index   int // integer numbered
 	devices []xilinxDevice
 }
 
@@ -123,13 +123,6 @@ func getFileContent(file string) (string, error) {
 	}
 }
 
-//Prior to 2018.3 release, Xilinx FPGA has mgmt PF as func 1 and user PF
-//as func 0. The func numbers of the 2 PFs are swapped after 2018.3 release.
-//The FPGA device driver in (and after) 2018.3 release creates sysfs file --
-//mgmt_pf and user_pf accordingly to reflect what a PF really is.
-//
-//The plugin will rely on this info to determine whether the a entry is mgmtPF,
-//userPF, or none. This also means, it will not support 2018.2 any more.
 func fileExist(fname string) bool {
 	if _, err := os.Stat(fname); err != nil {
 		if os.IsNotExist(err) {
@@ -149,9 +142,10 @@ func isUserPf(pciID string) bool {
 	return fileExist(fname)
 }
 
+// Return a list of all Xilinx devices on host.
 func getAllXilinxDevices() ([]xilinxDevice, error) {
 	var devices []xilinxDevice
-	pairMap := make(map[string]*pairs)
+	pairMap := make(map[string]*xilinxPair)
 	pciFiles, err := ioutil.ReadDir(SysfsDevices)
 	if err != nil {
 		return nil, fmt.Errorf("Can't read folder %s", SysfsDevices)
@@ -167,25 +161,20 @@ func getAllXilinxDevices() ([]xilinxDevice, error) {
 		}
 		if strings.EqualFold(vendorID, XilinxVendorID) != true &&
 			strings.EqualFold(vendorID, AristaVendorID) != true &&
-			strings.EqualFold(vendorID, AWS_ID) != true &&
-			strings.EqualFold(vendorID, ADVANTECH_ID) != true {
+			strings.EqualFold(vendorID, AWSVendorID) != true &&
+			strings.EqualFold(vendorID, AdvantechVendorID) != true {
 			continue
 		}
 
 		DBD := pciID[:len(pciID)-2]
 		if _, ok := pairMap[DBD]; !ok {
-			pairMap[DBD] = &pairs{
+			pairMap[DBD] = &xilinxPair{
 				Mgmt: "",
 				User: "",
 				Qdma: "",
 			}
 		}
 
-		// For containers deployed on top of baremetal machines, xilinx FPGA
-		// in sysfs will always appear as pair of mgmt PF and user PF
-		// For containers deployed on top of VM, there may be only user PF
-		// available(mgmt PF is not assigned to the VM)
-		// so mgmt in Pair may be empty
 		if isUserPf(pciID) { //user pf
 			userDBDF := pciID
 			romFolder, err := getFileNameFromPrefix(path.Join(SysfsDevices, pciID), ROMSTR)
@@ -268,7 +257,7 @@ func getAllXilinxDevices() ([]xilinxDevice, error) {
 				DBDF:      userDBDF,
 				deviceID:  devid,
 				SN:        SN,
-				Nodes:     pairMap[DBD],
+				Pair:      pairMap[DBD],
 			})
 		} else if isMgmtPf(pciID) { //mgmt pf
 			// get mgmt instance
@@ -283,6 +272,7 @@ func getAllXilinxDevices() ([]xilinxDevice, error) {
 	return devices, nil
 }
 
+// Return a list of device based on device environment variable, like '0,1', 'all', etc.
 func getXilinxDevicesByDeviceEnv(visibleDevicesEnv string) ([]xilinxDevice, error) {
 	allDevices, err := getAllXilinxDevices()
 	if err != nil {
@@ -305,6 +295,7 @@ func getXilinxDevicesByDeviceEnv(visibleDevicesEnv string) ([]xilinxDevice, erro
 	return visibleDevices, nil
 }
 
+// Return a list of all Xilinx cards on host
 func getAllXilinxCards() ([]xilinxCard, error) {
 	allDevices, err := getAllXilinxDevices()
 	if err != nil {
@@ -340,6 +331,7 @@ func getAllXilinxCards() ([]xilinxCard, error) {
 	return cards, nil
 }
 
+// Return a list of devices baed on card number, like '0', '1', etc.
 func getXilinxDevicesByCardNum(num int) ([]xilinxDevice, error) {
 	allcards, err := getAllXilinxCards()
 	if err != nil {
@@ -352,6 +344,7 @@ func getXilinxDevicesByCardNum(num int) ([]xilinxDevice, error) {
 	return allcards[num].devices, nil
 }
 
+// Return a list of devices based on card environment variable, like '0,1' or 'all', etc.
 func getXilinxDevicesByCardEnv(visibleCardsEnv string) ([]xilinxDevice, error) {
 	if strings.EqualFold(visibleCardsEnv, "all") {
 		return getAllXilinxDevices()
@@ -374,13 +367,14 @@ func getXilinxDevicesByCardEnv(visibleCardsEnv string) ([]xilinxDevice, error) {
 	return visibleXilinxDevices, nil
 }
 
+// Return device major and minor numbers based on device path
 func getDeviceMajorMinor(devPath string) (int64, int64, error) {
 	stat := syscall.Stat_t{}
 	err := syscall.Stat(devPath, &stat)
 	if err != nil {
 		return 0, 0, err
 	}
-	major := int64(stat.Rdev / 256)
-	minor := int64(stat.Rdev % 256)
+	major := int64(stat.Rdev >> 8)
+	minor := int64(stat.Rdev & (256 - 1))
 	return major, minor, nil
 }

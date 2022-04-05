@@ -341,7 +341,7 @@ func (r xilinxContainerRuntime) addDeviceExclusions(spec *specs.Spec) error {
 
 	// check whether it is in device exclusive mode
 	if r.deviceExclusiveEnabled(spec) {
-		// In device exlucsive mode, assign device to this
+		// In device exclucsive mode, assign device to this
 		// container only if the current device exclusion value is 0
 		for _, device := range visibleXilinxDevices {
 			if deviceExclusions[device.DBDF] != 0 {
@@ -433,37 +433,37 @@ func (r xilinxContainerRuntime) addXilinxDevices(spec *specs.Spec) error {
 			if userMounted && mgmtMounted {
 				break
 			}
-			if device.Nodes.User == mount.Source {
+			if device.Pair.User == mount.Source {
 				userMounted = true
 			}
-			if device.Nodes.Mgmt == mount.Source {
+			if device.Pair.Mgmt == mount.Source {
 				mgmtMounted = true
 			}
 		}
 
-		if !userMounted && len(strings.TrimSpace(device.Nodes.User)) != 0 {
+		if !userMounted && len(strings.TrimSpace(device.Pair.User)) != 0 {
 			// Mount user node
 			spec.Mounts = append(spec.Mounts, specs.Mount{
-				Destination: device.Nodes.User,
+				Destination: device.Pair.User,
 				Type:        "none",
-				Source:      device.Nodes.User,
+				Source:      device.Pair.User,
 				Options:     []string{"nosuid", "noexec", "bind"},
 			})
 		}
 
-		if !mgmtMounted && len(strings.TrimSpace(device.Nodes.Mgmt)) != 0 {
+		if !mgmtMounted && len(strings.TrimSpace(device.Pair.Mgmt)) != 0 {
 			// Mount mgmt node
 			spec.Mounts = append(spec.Mounts, specs.Mount{
-				Destination: device.Nodes.Mgmt,
+				Destination: device.Pair.Mgmt,
 				Type:        "none",
-				Source:      device.Nodes.Mgmt,
+				Source:      device.Pair.Mgmt,
 				Options:     []string{"nosuid", "noexec", "bind"},
 			})
 		}
 
 		// Check whether user device is mapped in Linux Devices config
 		deviceMapped := false
-		major, minor, err := getDeviceMajorMinor(device.Nodes.User)
+		major, minor, err := getDeviceMajorMinor(device.Pair.User)
 		for _, device := range spec.Linux.Resources.Devices {
 			if deviceMapped {
 				break
