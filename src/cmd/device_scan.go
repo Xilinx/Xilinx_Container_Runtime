@@ -63,8 +63,8 @@ type xilinxDevice struct {
 	index     string      // integer numbered
 	shellVer  string      // Xilinx shell version
 	timestamp string      // DSA timestamp
-	DBDF      string      // this is for user pf
-	deviceID  string      // devid of the user pf
+	DBDF      string      // Bus:Drive.Function notation
+	deviceID  string      // device id
 	SN        string      // serial number
 	Pair      *xilinxPair // pair with UserPF and MgmtPF node
 }
@@ -183,6 +183,11 @@ func getAllXilinxDevices() ([]xilinxDevice, error) {
 				return nil, err
 			}
 			for romFolder == "" {
+				/*
+					Generally most FPGA device will be rested in 120 seconds, but u30 device will take longer
+					than expected, and during this period, the device is being marked as unavailable. Therefore,
+					we give 720 seconds waiting for the device availability.
+				*/
 				if count >= 36 {
 					break
 				}

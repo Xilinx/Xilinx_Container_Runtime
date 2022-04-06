@@ -70,9 +70,11 @@ func newXilinxContainerRuntimeWithLogger(logger *log.Logger, cfg *config, runtim
 func (r xilinxContainerRuntime) modificationRequired(args []string) bool {
 	var previousWasBundle bool
 	for _, a := range args {
-		// We check for '--bundle|-b create|run|modify' explicitly to ensure
-		// that we don't inadvertently trigger a modification if the bundle
-		// directory is specified as 'create', 'run' or 'modify'
+		/*
+			We check for '--bundle|-b create|run|modify' explicitly to ensure
+			that we don't inadvertently trigger a modification if the bundle
+			directory is specified as 'create', 'run' or 'modify'
+		*/
 		if !previousWasBundle && isBundleFlag(a) {
 			previousWasBundle = true
 			continue
@@ -94,9 +96,11 @@ func (r xilinxContainerRuntime) modificationRequired(args []string) bool {
 func (r xilinxContainerRuntime) addDeviceExclusionsRequired(args []string) bool {
 	var previousWasBundle bool
 	for _, a := range args {
-		// We check for '--bundle|-b create' explicitly to ensure
-		// that we don't inadvertently trigger a modification if the bundle
-		// directory is specified as 'create'
+		/*
+			We check for '--bundle|-b create' explicitly to ensure
+			that we don't inadvertently trigger a modification if
+			the bundle directory is specified as 'create'
+		*/
 		if !previousWasBundle && isBundleFlag(a) {
 			previousWasBundle = true
 			continue
@@ -118,9 +122,11 @@ func (r xilinxContainerRuntime) addDeviceExclusionsRequired(args []string) bool 
 func (r xilinxContainerRuntime) deleteDeviceExclusionsRequired(args []string) bool {
 	var previousWasBundle bool
 	for _, a := range args {
-		// We check for '--bundle|-b delete' explicitly to ensure
-		// that we don't inadvertently trigger a modification if the bundle
-		// directory is specified as 'delete'
+		/*
+			We check for '--bundle|-b delete' explicitly to ensure
+			that we don't inadvertently trigger a modification if
+			the bundle directory is specified as 'delete'
+		*/
 		if !previousWasBundle && isBundleFlag(a) {
 			previousWasBundle = true
 			continue
@@ -142,9 +148,11 @@ func (r xilinxContainerRuntime) deleteDeviceExclusionsRequired(args []string) bo
 func (r xilinxContainerRuntime) forwardingRequired(args []string) bool {
 	var previousWasBundle bool
 	for _, a := range args {
-		// We check for '--bundle|-b modify' explicitly to ensure
-		// that we don't inadvertently forward the commands if the
-		// bundle directory is specified as 'modify'
+		/*
+			We check for '--bundle|-b modify' explicitly to ensure
+			that we don't inadvertently forward the commands if the
+			bundle directory is specified as 'modify'
+		*/
 		if !previousWasBundle && isBundleFlag(a) {
 			previousWasBundle = true
 			continue
@@ -245,9 +253,11 @@ func (r xilinxContainerRuntime) deviceExclusiveEnabled(spec *specs.Spec) bool {
 	return r.cfg.deviceExclusive
 }
 
-// get current device exclusion stats from file
-// -1 meaning device is being used by a container exclusively
-// non-negtive integers meaning the number of containers are sharing the device
+/*
+Get current device exclusion stats from file, -1 meaning device is being
+used by a container exclusively, non-negtive integers meaning the
+number of containers are sharing the device
+*/
 func (r xilinxContainerRuntime) getDeviceExclusions() (map[string]int, error) {
 	exclusions := xilinxDeviceExclusions{
 		Notice:  "",
@@ -341,8 +351,7 @@ func (r xilinxContainerRuntime) addDeviceExclusions(spec *specs.Spec) error {
 
 	// check whether it is in device exclusive mode
 	if r.deviceExclusiveEnabled(spec) {
-		// In device exclucsive mode, assign device to this
-		// container only if the current device exclusion value is 0
+		// In device exclucsive mode, assign device to this container only if the current device exclusion value is 0
 		for _, device := range visibleXilinxDevices {
 			if deviceExclusions[device.DBDF] != 0 {
 				r.logger.Printf("Device %s is being used by another container", device.DBDF)
@@ -353,8 +362,7 @@ func (r xilinxContainerRuntime) addDeviceExclusions(spec *specs.Spec) error {
 			}
 		}
 	} else {
-		// Not in device exclusive mode, assign device to this
-		// container if current device exclusion value is not -1
+		// Not in device exclusive mode, assign device to this container if current device exclusion value is not -1
 		for _, device := range visibleXilinxDevices {
 			if deviceExclusions[device.DBDF] == -1 {
 				r.logger.Printf("Device %s is being used exclusively by another container", device.DBDF)
